@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-from typing import Optional, Union
+from typing import Optional
 from http import HTTPStatus
 
 import telegram
@@ -40,9 +40,6 @@ HOMEWORK_STATUSES = {
 }
 
 
-TApiAnswer = dict[str, Union[list, int]]
-
-
 def send_message(bot: telegram.Bot, message: str) -> None:
     """
     Sends message to Telegram chat.
@@ -55,7 +52,7 @@ def send_message(bot: telegram.Bot, message: str) -> None:
         logger.error(f'Message {message} is not sending. Error: {e}')
 
 
-def get_api_answer(current_timestamp: Optional[int] = None) -> TApiAnswer:
+def get_api_answer(current_timestamp: Optional[int] = None) -> dict:
     """Makes a request to yandex homework API."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
@@ -78,7 +75,7 @@ def get_api_answer(current_timestamp: Optional[int] = None) -> TApiAnswer:
     return response
 
 
-def check_response(response: TApiAnswer) -> list:
+def check_response(response: dict) -> list:
     """Checks API response for correctness."""
     error_message = None
     if not isinstance(response, dict):
