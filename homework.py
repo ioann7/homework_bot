@@ -141,7 +141,7 @@ def main() -> None:
         raise MissingEnvironmentVariable
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
+    current_timestamp = 1
 
     while True:
         try:
