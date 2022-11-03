@@ -41,15 +41,16 @@ HOMEWORK_STATUSES = {
 }
 
 
-def send_message(bot: telegram.Bot, message: str) -> None:
+def send_message(bot: telegram.Bot, message: str) -> str:
     """
     Sends message to Telegram chat.
     Defined by environment variable `TELEGRAM_CHAT_ID`.
     """
     try:
         logging.debug(f'Bot starts sending message: {message}')
-        bot.send_message(text=message, chat_id=TELEGRAM_CHAT_ID)
+        sent_message = bot.send_message(text=message, chat_id=TELEGRAM_CHAT_ID)
         logging.info(f'Bot sent message: {message}')
+        return sent_message.text
     except TelegramError as e:
         raise SendMessageError(f'Message {message} is not sending. Error: {e}')
 
@@ -114,7 +115,8 @@ def parse_status(homework: dict) -> str:
     if homework_name is None:
         raise KeyError('`homework` missing key `homework_name`')
     if homework_status is None:
-        raise KeyError('`homework` missing key `status`')
+        raise KeyError('Cannot get homework status.\n'
+                       '`homework` missing key `status`')
 
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
@@ -125,9 +127,7 @@ def parse_status(homework: dict) -> str:
 def check_tokens() -> bool:
     """Checks the availability of environment variables."""
     environment_variables = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
-    if all(environment_variables):
-        return True
-    return False
+    return all(environment_variables)
 
 
 def main() -> None:
@@ -139,6 +139,7 @@ def main() -> None:
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    last_message = ''
 
     while True:
         try:
@@ -150,13 +151,15 @@ def main() -> None:
             else:
                 newest_homework = new_homeworks[0]
                 message = parse_status(newest_homework)
-                send_message(bot, message)
+                if last_message != message:
+                    last_message = send_message(bot, message)
         except BaseStateDeviation as error:
-            logging.error(error)
+            logging.error(error, exc_info=True)
         except Exception as error:
-            logging.error(error)
+            logging.error(error, exc_info=True)
             message = f'Program crash: {error}'
-            send_message(bot, message)
+            if last_message != message:
+                last_message = send_message(bot, message)
         finally:
             logging.debug(f'Starting sleeping {RETRY_TIME} sec')
             time.sleep(RETRY_TIME)
