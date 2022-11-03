@@ -22,7 +22,7 @@ stream_handler = logging.StreamHandler(stream=sys.stdout)
 file_handler = logging.FileHandler('logs.log', 'a')
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] %(message)s',
+    format='%(asctime)s [%(levelname)s] %(funcName)s %(message)s',
     handlers=(stream_handler, file_handler))
 
 
@@ -48,9 +48,9 @@ def send_message(bot: telegram.Bot, message: str) -> None:
     Defined by environment variable `TELEGRAM_CHAT_ID`.
     """
     try:
-        logging.DEBUG(f'Bot starts sending message: {message}')
+        logging.debug(f'Bot starts sending message: {message}')
         bot.send_message(text=message, chat_id=TELEGRAM_CHAT_ID)
-        logging.INFO(f'Bot sent message: {message}')
+        logging.info(f'Bot sent message: {message}')
     except TelegramError as e:
         raise SendMessageError(f'Message {message} is not sending. Error: {e}')
 
@@ -84,18 +84,18 @@ def get_api_answer(current_timestamp: Optional[int] = None) -> dict:
 
 def check_response(response: dict) -> list:
     """Checks API response for correctness."""
-    logging.DEBUG(f'Starts checking api response {response}')
+    logging.debug(f'Starts checking api response {response}')
     if not isinstance(response, dict):
         raise TypeError('Response is not a dict.')
 
     homeworks = response.get('homeworks')
     current_date = response.get('current_date')
 
-    if not homeworks:
+    if homeworks is None:
         raise EndpointBadResponse(
             'Response missing required key `homeworks`'
         )
-    if not current_date:
+    if current_date is None:
         raise MissingNotRequiredKey(
             'Response missing not required key `current_date`'
         )
@@ -112,20 +112,21 @@ def parse_status(homework: dict) -> str:
         raise TypeError('`homework` is not a dict')
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
-    if not homework_name:
+    if homework_name is None:
         raise KeyError('`homework` missing key `homework_name`')
-    if not homework_status:
+    if homework_status is None:
         raise KeyError('`homework` missing key `status`')
 
     verdict = HOMEWORK_STATUSES.get(homework_status)
-    if not verdict:
+    if verdict is None:
         raise KeyError('Unexpected status')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens() -> bool:
     """Checks the availability of environment variables."""
-    if all(PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID):
+    environment_variables = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
+    if all(environment_variables):
         return True
     return False
 
@@ -134,7 +135,7 @@ def main() -> None:
     """The main logic of the bot."""
     if not check_tokens():
         error_message = 'Missing environment variable'
-        logging.CRITICAL(error_message)
+        logging.critical(error_message)
         sys.exit(error_message)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -146,18 +147,19 @@ def main() -> None:
             current_timestamp = response.get('current_date', current_timestamp)
             new_homeworks = check_response(response)
             if not new_homeworks:
-                logging.DEBUG('No new statuses')
+                logging.debug('No new statuses')
             else:
                 newest_homework = new_homeworks[0]
                 message = parse_status(newest_homework)
                 send_message(bot, message)
         except BaseStateDeviation as error:
-            logging.ERROR(error)
+            logging.error(error)
         except Exception as error:
-            logging.ERROR(error)
+            logging.error(error)
             message = f'Program crash: {error}'
             send_message(bot, message)
         finally:
+            logging.debug(f'Starting sleeping {RETRY_TIME} sec')
             time.sleep(RETRY_TIME)
 
 
