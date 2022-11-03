@@ -1,9 +1,13 @@
-class MissingEnvironmentVariable(Exception):
-    """
-    Missing environment variable.
-    That exception raised when some of
-    environment variables is not exists.
-    """
+class BaseStateDeviation(Exception):
+    """Base exception class state deviation."""
+
+
+class SendMessageError(BaseStateDeviation):
+    """Telegram message not sent."""
+
+
+class MissingNotRequiredKey(BaseStateDeviation):
+    """Missing not required key in Response."""
 
 
 class EndpointBadResponse(Exception):
