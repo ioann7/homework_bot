@@ -10,9 +10,8 @@ from telegram.error import TelegramError
 import requests
 from dotenv import load_dotenv
 
-from exceptions import (BaseStateDeviation,
-                        SendMessageError, MissingNotRequiredKey,
-                        EndpointBadResponse)
+from exceptions import (BaseStateDeviation, SendMessageError,
+                        MissingNotRequiredKey, EndpointBadResponse)
 
 
 load_dotenv()
